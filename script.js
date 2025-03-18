@@ -1566,117 +1566,201 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show loading message
         UI.showError('Preparing PDF for download...');
         
-        // Create a container to hold only what we want in the PDF
+        // Create a container that will be converted to PDF
         const pdfContainer = document.createElement('div');
-        pdfContainer.className = 'pdf-container';
         pdfContainer.style.width = '8.5in';
-        pdfContainer.style.margin = '0 auto';
-        pdfContainer.style.backgroundColor = '#fff';
         pdfContainer.style.padding = '0.5in';
-        pdfContainer.style.fontFamily = 'Times New Roman, serif';
+        pdfContainer.style.backgroundColor = '#fff';
         pdfContainer.style.color = '#000';
+        pdfContainer.style.fontFamily = 'Times New Roman, serif';
+        pdfContainer.style.position = 'relative';
+        pdfContainer.style.boxSizing = 'border-box';
         
-        // Get current style for PDF generation
-        const currentStyle = document.getElementById('style-select').value;
+        // Create the newspaper header
+        const headerDiv = document.createElement('div');
+        headerDiv.style.textAlign = 'center';
+        headerDiv.style.marginBottom = '20px';
+        headerDiv.style.borderBottom = '2px solid #000';
+        headerDiv.style.paddingBottom = '10px';
         
-        // Create PDF header
-        const pdfHeader = document.createElement('div');
-        pdfHeader.style.textAlign = 'center';
-        pdfHeader.style.marginBottom = '20px';
-        pdfHeader.style.borderBottom = '2px solid black';
-        pdfHeader.style.paddingBottom = '10px';
-        
+        // Newspaper name
         const nameElement = document.createElement('h1');
         nameElement.textContent = newspaperName.textContent;
-        nameElement.style.fontSize = '24pt';
+        nameElement.style.fontSize = '32px';
         nameElement.style.fontWeight = 'bold';
-        nameElement.style.margin = '0 0 10px 0';
+        nameElement.style.margin = '0 0 5px 0';
+        nameElement.style.textTransform = 'uppercase';
+        nameElement.style.fontFamily = 'Times New Roman, serif';
         
+        // Date
         const dateElement = document.createElement('p');
         dateElement.textContent = newspaperDate.textContent;
-        dateElement.style.fontSize = '12pt';
+        dateElement.style.fontSize = '16px';
         dateElement.style.fontStyle = 'italic';
         dateElement.style.margin = '0';
         
-        pdfHeader.appendChild(nameElement);
-        pdfHeader.appendChild(dateElement);
+        headerDiv.appendChild(nameElement);
+        headerDiv.appendChild(dateElement);
         
-        // Create article content
-        const pdfArticle = document.createElement('div');
-        pdfArticle.style.marginBottom = '20px';
+        // Create horizontal rule
+        const hrElement = document.createElement('hr');
+        hrElement.style.border = 'none';
+        hrElement.style.borderTop = '1px solid black';
+        hrElement.style.margin = '20px 0';
         
+        // Create article section
+        const articleDiv = document.createElement('div');
+        articleDiv.style.marginBottom = '30px';
+        
+        // Article headline
         const headlineElement = document.createElement('h2');
         headlineElement.textContent = articleHeadline.textContent;
-        headlineElement.style.fontSize = '18pt';
+        headlineElement.style.fontSize = '24px';
         headlineElement.style.fontWeight = 'bold';
         headlineElement.style.marginBottom = '10px';
+        headlineElement.style.textTransform = 'uppercase';
         
+        // Article byline
         const bylineElement = document.createElement('p');
         bylineElement.textContent = articleByline.textContent;
-        bylineElement.style.fontSize = '11pt';
+        bylineElement.style.fontSize = '14px';
         bylineElement.style.fontStyle = 'italic';
         bylineElement.style.marginBottom = '20px';
-        bylineElement.style.color = '#444';
+        bylineElement.style.borderBottom = '1px solid #ccc';
+        bylineElement.style.paddingBottom = '10px';
         
+        // Article content with columns
+        const contentContainer = document.createElement('div');
+        contentContainer.style.columnCount = '2';
+        contentContainer.style.columnGap = '20px';
+        contentContainer.style.textAlign = 'justify';
+        
+        // Clone the article content
         const contentElement = document.createElement('div');
         contentElement.innerHTML = articleContent.innerHTML;
-        contentElement.style.fontSize = '12pt';
+        contentElement.style.fontSize = '14px';
         contentElement.style.lineHeight = '1.5';
-        contentElement.style.textAlign = 'justify';
         
-        pdfArticle.appendChild(headlineElement);
-        pdfArticle.appendChild(bylineElement);
-        pdfArticle.appendChild(contentElement);
+        // Make sure paragraphs have proper styling
+        const paragraphs = contentElement.querySelectorAll('p');
+        paragraphs.forEach(p => {
+            p.style.marginBottom = '10px';
+            p.style.textIndent = '20px';
+        });
         
-        // Add comments section
-        const commentsTitle = document.createElement('h3');
-        commentsTitle.textContent = 'Reader Comments';
-        commentsTitle.style.fontSize = '14pt';
-        commentsTitle.style.marginTop = '30px';
-        commentsTitle.style.marginBottom = '15px';
-        commentsTitle.style.borderBottom = '1px solid #000';
-        commentsTitle.style.paddingBottom = '5px';
+        contentContainer.appendChild(contentElement);
         
-        const commentsElement = document.createElement('div');
-        commentsElement.style.fontSize = '10pt';
+        // Add elements to article div
+        articleDiv.appendChild(headlineElement);
+        articleDiv.appendChild(bylineElement);
+        articleDiv.appendChild(contentContainer);
         
-        // Get all comments
+        // Create comments section
+        const commentsDiv = document.createElement('div');
+        commentsDiv.style.marginTop = '30px';
+        commentsDiv.style.borderTop = '2px solid #000';
+        commentsDiv.style.paddingTop = '15px';
+        
+        // Comments header
+        const commentsHeader = document.createElement('h3');
+        commentsHeader.textContent = 'Reader Comments';
+        commentsHeader.style.fontSize = '18px';
+        commentsHeader.style.marginBottom = '15px';
+        commentsHeader.style.borderBottom = '1px solid #ccc';
+        commentsHeader.style.paddingBottom = '5px';
+        
+        commentsDiv.appendChild(commentsHeader);
+        
+        // Add comments
         const comments = document.querySelectorAll('.comment');
         comments.forEach(comment => {
             const commentDiv = document.createElement('div');
             commentDiv.style.marginBottom = '15px';
-            commentDiv.style.paddingBottom = '10px';
-            commentDiv.style.borderBottom = '1px solid #eee';
+            commentDiv.style.padding = '10px';
+            commentDiv.style.backgroundColor = '#f9f9f9';
+            commentDiv.style.border = '1px solid #eee';
             
+            // Get comment parts
             const author = comment.querySelector('.comment-author').textContent;
             const text = comment.querySelector('.comment-text').textContent;
             const meta = comment.querySelector('.comment-meta').textContent;
             
-            commentDiv.innerHTML = `
-                <div style="font-weight: bold; margin-bottom: 5px;">${author}</div>
-                <div style="margin-bottom: 5px;">${text}</div>
-                <div style="font-size: 9pt; color: #666;">${meta}</div>
-            `;
+            // Create comment elements
+            const authorEl = document.createElement('div');
+            authorEl.textContent = author;
+            authorEl.style.fontWeight = 'bold';
+            authorEl.style.marginBottom = '5px';
             
-            commentsElement.appendChild(commentDiv);
+            const textEl = document.createElement('div');
+            textEl.textContent = text;
+            textEl.style.marginBottom = '5px';
+            textEl.style.fontSize = '14px';
+            
+            const metaEl = document.createElement('div');
+            metaEl.textContent = meta;
+            metaEl.style.fontSize = '12px';
+            metaEl.style.color = '#666';
+            metaEl.style.fontStyle = 'italic';
+            
+            commentDiv.appendChild(authorEl);
+            commentDiv.appendChild(textEl);
+            commentDiv.appendChild(metaEl);
+            
+            commentsDiv.appendChild(commentDiv);
         });
         
         // Create footer
-        const pdfFooter = document.createElement('div');
-        pdfFooter.style.marginTop = '30px';
-        pdfFooter.style.borderTop = '1px solid #000';
-        pdfFooter.style.paddingTop = '10px';
-        pdfFooter.style.fontSize = '8pt';
-        pdfFooter.style.textAlign = 'center';
-        pdfFooter.style.color = '#666';
-        pdfFooter.textContent = 'Generated by What If News Generator • ' + new Date().toLocaleDateString();
+        const footerDiv = document.createElement('div');
+        footerDiv.style.marginTop = '30px';
+        footerDiv.style.borderTop = '1px solid #000';
+        footerDiv.style.paddingTop = '10px';
+        footerDiv.style.fontSize = '12px';
+        footerDiv.style.textAlign = 'center';
+        footerDiv.style.color = '#666';
+        
+        const footerText = document.createElement('p');
+        footerText.textContent = `The ${newspaperName.textContent} • ${new Date().toLocaleDateString()} • What If News Generator`;
+        footerText.style.margin = '0';
+        
+        const disclaimerText = document.createElement('p');
+        disclaimerText.textContent = 'This is a fictional newspaper from an alternate reality. Any resemblance to real events is coincidental.';
+        disclaimerText.style.margin = '5px 0 0 0';
+        disclaimerText.style.fontSize = '10px';
+        
+        footerDiv.appendChild(footerText);
+        footerDiv.appendChild(disclaimerText);
         
         // Assemble the PDF container
-        pdfContainer.appendChild(pdfHeader);
-        pdfContainer.appendChild(pdfArticle);
-        pdfContainer.appendChild(commentsTitle);
-        pdfContainer.appendChild(commentsElement);
-        pdfContainer.appendChild(pdfFooter);
+        pdfContainer.appendChild(headerDiv);
+        pdfContainer.appendChild(articleDiv);
+        pdfContainer.appendChild(commentsDiv);
+        pdfContainer.appendChild(footerDiv);
+        
+        // Get current style for PDF generation
+        const currentStyle = document.getElementById('style-select').value;
+        
+        // Apply theme-specific styling
+        if (currentStyle === 'monochrome') {
+            pdfContainer.style.backgroundColor = '#f8f8f8';
+            contentContainer.style.fontFamily = 'Georgia, serif';
+            nameElement.style.fontFamily = 'Times New Roman, serif';
+            nameElement.style.letterSpacing = '4px';
+        } else if (currentStyle === 'modern') {
+            pdfContainer.style.fontFamily = 'Arial, sans-serif';
+            nameElement.style.color = '#1a73e8';
+            headlineElement.style.color = '#1a73e8';
+            nameElement.style.fontFamily = 'Arial, sans-serif';
+            headlineElement.style.fontFamily = 'Arial, sans-serif';
+        } else if (currentStyle === 'futuristic') {
+            pdfContainer.style.backgroundColor = '#000';
+            pdfContainer.style.color = '#00ffcc';
+            pdfContainer.style.fontFamily = 'Courier New, monospace';
+            nameElement.style.textShadow = '0 0 10px #00ffcc';
+            headlineElement.style.textShadow = '0 0 10px #00ffcc';
+            headerDiv.style.borderBottom = '2px solid #00ffcc';
+            commentsDiv.style.borderTop = '2px solid #00ffcc';
+            footerDiv.style.borderTop = '1px solid #00ffcc';
+        }
         
         // Create temporary hidden div
         const tempDiv = document.createElement('div');
@@ -1695,14 +1779,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 useCORS: true,
                 letterRendering: true,
                 scrollY: 0,
-                windowWidth: 816, // 8.5 inches * 96 DPI
-                windowHeight: 1056 // 11 inches * 96 DPI
+                width: 816, // 8.5 inches * 96 DPI
+                height: 1056 // 11 inches * 96 DPI
             },
             jsPDF: { 
                 unit: 'in', 
                 format: 'letter', 
                 orientation: 'portrait',
-                compress: true
+                compress: true,
+                precision: 2
             }
         };
         
