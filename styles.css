@@ -314,8 +314,8 @@ header h1 {
 }
 
 .retro #article-content {
-    column-count: 1;
-    column-gap: 0;
+    column-count: 2;
+    column-gap: 30px;
 }
 
 /* Modern Blog Style */
@@ -349,7 +349,8 @@ header h1 {
 }
 
 .modern #article-content {
-    column-count: 1;
+    column-count: 2;
+    column-gap: 30px;
 }
 
 .modern #article-content p {
@@ -381,6 +382,11 @@ header h1 {
 
 .futuristic #article-headline::after {
     background: #00ffcc;
+}
+
+.futuristic #article-content {
+    column-count: 2;
+    column-gap: 30px;
 }
 
 .futuristic #article-content p {
@@ -1035,9 +1041,9 @@ footer a:hover {
 }
 
 .monochrome #article-content {
-    column-count: 1;
-    column-gap: 0;
-    column-rule: none;
+    column-count: 2;
+    column-gap: 30px;
+    column-rule: 1px solid #ccc;
     text-align: justify;
     font-family: 'Georgia', serif;
     line-height: 1.7;
