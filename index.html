@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Generate news articles from alternate realities with the Alternate Reality News Generator!">
+    <meta name="keywords" content="alternate reality, news generator, what if scenarios, fake news">
+    <title>Alternate Reality News Generator</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📰</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Alternate Reality News Generator</h1>
+            <p class="tagline">News from worlds that could have been</p>
+        </header>
+        
+        <div class="input-section">
+            <h2>Create Your Alternate Reality</h2>
+            <p>Enter a "what if" scenario to generate a news article from that world.</p>
+            <div class="input-container">
+                <input type="text" id="scenario-input" placeholder="e.g., What if the moon was made of cheese?">
+                <button id="generate-btn">Generate News</button>
+            </div>
+        </div>
+        
+        <div id="loading" class="loading hidden">
+            <p>Generating your alternate reality news...</p>
+            <div class="spinner"></div>
+        </div>
+        
+        <div id="news-container" class="news-container hidden">
+            <div class="newspaper">
+                <div class="newspaper-header">
+                    <h2 id="newspaper-name">The Alternate Chronicle</h2>
+                    <p id="newspaper-date"></p>
+                </div>
+                
+                <div class="article">
+                    <h2 id="article-headline"></h2>
+                    <p id="article-byline"></p>
+                    <div id="article-content"></div>
+                </div>
+                
+                <div class="comments-section">
+                    <h3>Reader Comments</h3>
+                    <div id="comments-container"></div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Created by <a href="https://github.com/yourusername" target="_blank">Your Name</a> | <a href="https://github.com/yourusername/alternate-reality-news-generator" target="_blank">View on GitHub</a></p>
+            <p class="disclaimer">All content is fictional and generated for entertainment purposes only.</p>
+        </footer>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html> 
