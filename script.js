@@ -10,13 +10,13 @@ document.addEventListener('DOMContentLoaded', () => {
         mobileStyles.textContent = `
             /* Mobile-specific styles */
             body.mobile-device {
-                font-size: 14px;
+                font-size: 13px;
             }
             
-            .mobile-device h1 { font-size: 1.5rem; }
-            .mobile-device h2 { font-size: 1.2rem; }
-            .mobile-device h3 { font-size: 1rem; }
-            .mobile-device h4 { font-size: 0.9rem; }
+            .mobile-device h1 { font-size: 1.3rem; }
+            .mobile-device h2 { font-size: 1rem; }
+            .mobile-device h3 { font-size: 0.9rem; }
+            .mobile-device h4 { font-size: 0.8rem; }
             
             .mobile-device .newspaper {
                 padding: 10px;
@@ -24,47 +24,47 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             .mobile-device .article {
-                font-size: 0.9rem;
+                font-size: 0.85rem;
                 line-height: 1.4;
             }
             
             .mobile-device .article-headline {
-                font-size: 1.1rem;
+                font-size: 1rem;
                 line-height: 1.3;
             }
             
             .mobile-device .article-byline {
-                font-size: 0.8rem;
+                font-size: 0.75rem;
             }
             
             .mobile-device .comment {
-                font-size: 0.85rem;
+                font-size: 0.8rem;
                 padding: 8px;
                 margin: 5px 0;
             }
             
             .mobile-device .comment-author {
-                font-size: 0.8rem;
-            }
-            
-            .mobile-device .comment-meta {
                 font-size: 0.75rem;
             }
             
+            .mobile-device .comment-meta {
+                font-size: 0.7rem;
+            }
+            
             .mobile-device button {
-                font-size: 0.85rem;
-                padding: 6px 12px;
+                font-size: 0.8rem;
+                padding: 6px 10px;
                 margin: 3px;
             }
             
             .mobile-device .suggestion-btn {
-                font-size: 0.8rem;
-                padding: 5px 10px;
+                font-size: 0.75rem;
+                padding: 5px 8px;
                 margin: 2px;
             }
             
             .mobile-device input[type="text"] {
-                font-size: 0.9rem;
+                font-size: 0.85rem;
                 padding: 8px;
             }
             
@@ -74,11 +74,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             .mobile-device .history-scenario {
-                font-size: 0.85rem;
+                font-size: 0.8rem;
             }
             
             .mobile-device .history-date {
-                font-size: 0.75rem;
+                font-size: 0.7rem;
             }
             
             .mobile-device .settings-container {
@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             .mobile-device select {
-                font-size: 0.85rem;
+                font-size: 0.8rem;
                 padding: 5px;
             }
             
@@ -95,8 +95,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             .mobile-device .article-actions button {
-                font-size: 0.8rem;
-                padding: 5px 10px;
+                font-size: 0.75rem;
+                padding: 5px 8px;
             }
             
             .mobile-device .suggestion-buttons {
@@ -118,16 +118,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             .mobile-device .mobile-settings label {
-                font-size: 0.85rem;
+                font-size: 0.8rem;
             }
             
             .mobile-device .mobile-settings h4 {
-                font-size: 0.9rem;
+                font-size: 0.85rem;
                 margin: 5px 0;
             }
             
             .mobile-device .mobile-settings p {
-                font-size: 0.8rem;
+                font-size: 0.75rem;
             }
             
             .mobile-device .suggestions-actions {
@@ -138,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             .mobile-device .suggestions-actions button {
                 flex: 1;
-                font-size: 0.8rem;
+                font-size: 0.75rem;
                 padding: 5px 8px;
             }
             
@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             .mobile-device .mobile-suggestions-list .suggestion-item {
-                font-size: 0.8rem;
+                font-size: 0.75rem;
                 padding: 5px;
                 margin: 2px 0;
             }
@@ -165,10 +165,33 @@ document.addEventListener('DOMContentLoaded', () => {
             
             .mobile-device .view-more-history-btn,
             .mobile-device .show-more-comments-btn {
-                font-size: 0.8rem;
+                font-size: 0.75rem;
                 padding: 5px 8px;
                 margin: 5px 0;
                 width: 100%;
+            }
+            
+            /* Remove column layout for mobile */
+            .mobile-device .retro #article-content,
+            .mobile-device .modern #article-content,
+            .mobile-device .monochrome #article-content,
+            .mobile-device .futuristic #article-content {
+                column-count: 1 !important;
+                column-gap: 0 !important;
+            }
+            
+            .mobile-device #newspaper-name {
+                font-size: 1.3rem;
+                letter-spacing: 1px;
+            }
+            
+            .mobile-device .monochrome #article-headline {
+                font-size: 1.2rem;
+            }
+            
+            .mobile-device .monochrome #newspaper-name {
+                font-size: 1.5rem;
+                letter-spacing: 1px;
             }
         `;
         document.head.appendChild(mobileStyles);
@@ -1249,12 +1272,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const articleActionsContainer = document.createElement('div');
         articleActionsContainer.className = `article-actions ${isMobile ? 'mobile-article-actions' : ''}`;
         articleActionsContainer.innerHTML = `
+            <button id="download-pdf-btn">Download PDF</button>
             <button id="share-btn">Share Article</button>
             <button id="fact-check-btn">Reality Check</button>
         `;
         
         // Insert actions after the article
         document.querySelector('.article').appendChild(articleActionsContainer);
+        
+        // PDF download button functionality
+        document.getElementById('download-pdf-btn').addEventListener('click', () => {
+            generatePDF();
+        });
         
         // Share button functionality
         document.getElementById('share-btn').addEventListener('click', () => {
@@ -1529,6 +1558,182 @@ document.addEventListener('DOMContentLoaded', () => {
         if (newIsMobile !== isMobile) {
             // Reload the page to apply correct layout
             window.location.reload();
+        }
+    };
+    
+    // Function to generate and download a PDF of the article
+    const generatePDF = () => {
+        // Show loading message
+        UI.showError('Preparing PDF for download...');
+        
+        // Create a container to hold only what we want in the PDF
+        const pdfContainer = document.createElement('div');
+        pdfContainer.className = 'pdf-container';
+        pdfContainer.style.width = '8.5in';
+        pdfContainer.style.margin = '0 auto';
+        pdfContainer.style.backgroundColor = '#fff';
+        pdfContainer.style.padding = '0.5in';
+        pdfContainer.style.fontFamily = 'Times New Roman, serif';
+        pdfContainer.style.color = '#000';
+        
+        // Get current style for PDF generation
+        const currentStyle = document.getElementById('style-select').value;
+        
+        // Create PDF header
+        const pdfHeader = document.createElement('div');
+        pdfHeader.style.textAlign = 'center';
+        pdfHeader.style.marginBottom = '20px';
+        pdfHeader.style.borderBottom = '2px solid black';
+        pdfHeader.style.paddingBottom = '10px';
+        
+        const nameElement = document.createElement('h1');
+        nameElement.textContent = newspaperName.textContent;
+        nameElement.style.fontSize = '24pt';
+        nameElement.style.fontWeight = 'bold';
+        nameElement.style.margin = '0 0 10px 0';
+        
+        const dateElement = document.createElement('p');
+        dateElement.textContent = newspaperDate.textContent;
+        dateElement.style.fontSize = '12pt';
+        dateElement.style.fontStyle = 'italic';
+        dateElement.style.margin = '0';
+        
+        pdfHeader.appendChild(nameElement);
+        pdfHeader.appendChild(dateElement);
+        
+        // Create article content
+        const pdfArticle = document.createElement('div');
+        pdfArticle.style.marginBottom = '20px';
+        
+        const headlineElement = document.createElement('h2');
+        headlineElement.textContent = articleHeadline.textContent;
+        headlineElement.style.fontSize = '18pt';
+        headlineElement.style.fontWeight = 'bold';
+        headlineElement.style.marginBottom = '10px';
+        
+        const bylineElement = document.createElement('p');
+        bylineElement.textContent = articleByline.textContent;
+        bylineElement.style.fontSize = '11pt';
+        bylineElement.style.fontStyle = 'italic';
+        bylineElement.style.marginBottom = '20px';
+        bylineElement.style.color = '#444';
+        
+        const contentElement = document.createElement('div');
+        contentElement.innerHTML = articleContent.innerHTML;
+        contentElement.style.fontSize = '12pt';
+        contentElement.style.lineHeight = '1.5';
+        contentElement.style.textAlign = 'justify';
+        
+        pdfArticle.appendChild(headlineElement);
+        pdfArticle.appendChild(bylineElement);
+        pdfArticle.appendChild(contentElement);
+        
+        // Add comments section
+        const commentsTitle = document.createElement('h3');
+        commentsTitle.textContent = 'Reader Comments';
+        commentsTitle.style.fontSize = '14pt';
+        commentsTitle.style.marginTop = '30px';
+        commentsTitle.style.marginBottom = '15px';
+        commentsTitle.style.borderBottom = '1px solid #000';
+        commentsTitle.style.paddingBottom = '5px';
+        
+        const commentsElement = document.createElement('div');
+        commentsElement.style.fontSize = '10pt';
+        
+        // Get all comments
+        const comments = document.querySelectorAll('.comment');
+        comments.forEach(comment => {
+            const commentDiv = document.createElement('div');
+            commentDiv.style.marginBottom = '15px';
+            commentDiv.style.paddingBottom = '10px';
+            commentDiv.style.borderBottom = '1px solid #eee';
+            
+            const author = comment.querySelector('.comment-author').textContent;
+            const text = comment.querySelector('.comment-text').textContent;
+            const meta = comment.querySelector('.comment-meta').textContent;
+            
+            commentDiv.innerHTML = `
+                <div style="font-weight: bold; margin-bottom: 5px;">${author}</div>
+                <div style="margin-bottom: 5px;">${text}</div>
+                <div style="font-size: 9pt; color: #666;">${meta}</div>
+            `;
+            
+            commentsElement.appendChild(commentDiv);
+        });
+        
+        // Create footer
+        const pdfFooter = document.createElement('div');
+        pdfFooter.style.marginTop = '30px';
+        pdfFooter.style.borderTop = '1px solid #000';
+        pdfFooter.style.paddingTop = '10px';
+        pdfFooter.style.fontSize = '8pt';
+        pdfFooter.style.textAlign = 'center';
+        pdfFooter.style.color = '#666';
+        pdfFooter.textContent = 'Generated by What If News Generator • ' + new Date().toLocaleDateString();
+        
+        // Assemble the PDF container
+        pdfContainer.appendChild(pdfHeader);
+        pdfContainer.appendChild(pdfArticle);
+        pdfContainer.appendChild(commentsTitle);
+        pdfContainer.appendChild(commentsElement);
+        pdfContainer.appendChild(pdfFooter);
+        
+        // Create temporary hidden div
+        const tempDiv = document.createElement('div');
+        tempDiv.style.position = 'absolute';
+        tempDiv.style.left = '-9999px';
+        tempDiv.appendChild(pdfContainer);
+        document.body.appendChild(tempDiv);
+        
+        // PDF generation options
+        const opt = {
+            margin: 0,
+            filename: `${newspaperName.textContent.replace(/\s+/g, '-')}-${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { 
+                scale: 2,
+                useCORS: true,
+                letterRendering: true,
+                scrollY: 0,
+                windowWidth: 816, // 8.5 inches * 96 DPI
+                windowHeight: 1056 // 11 inches * 96 DPI
+            },
+            jsPDF: { 
+                unit: 'in', 
+                format: 'letter', 
+                orientation: 'portrait',
+                compress: true
+            }
+        };
+        
+        // Load html2pdf library if not already loaded
+        if (typeof html2pdf === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+            script.onload = () => {
+                html2pdf().set(opt).from(pdfContainer).save().then(() => {
+                    document.body.removeChild(tempDiv);
+                    UI.showError('PDF downloaded successfully!');
+                }).catch(err => {
+                    console.error('Error generating PDF:', err);
+                    UI.showError('Failed to generate PDF. Please try again.');
+                    document.body.removeChild(tempDiv);
+                });
+            };
+            script.onerror = () => {
+                UI.showError('Failed to load PDF generator. Please check your internet connection and try again.');
+                document.body.removeChild(tempDiv);
+            };
+            document.head.appendChild(script);
+        } else {
+            html2pdf().set(opt).from(pdfContainer).save().then(() => {
+                document.body.removeChild(tempDiv);
+                UI.showError('PDF downloaded successfully!');
+            }).catch(err => {
+                console.error('Error generating PDF:', err);
+                UI.showError('Failed to generate PDF. Please try again.');
+                document.body.removeChild(tempDiv);
+            });
         }
     };
     

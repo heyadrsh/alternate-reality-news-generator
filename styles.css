@@ -11,6 +11,7 @@ body {
     background-color: #f0f0f0;
     color: #222;
     background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    font-size: 15px;
 }
 
 .container {
@@ -30,7 +31,7 @@ header {
 }
 
 header h1 {
-    font-size: 2.8rem;
+    font-size: 2.4rem;
     margin-bottom: 15px;
     font-family: 'Times New Roman', serif;
     text-transform: uppercase;
@@ -40,7 +41,7 @@ header h1 {
 
 .tagline {
     font-style: italic;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     color: #555;
     font-family: 'Georgia', serif;
 }
@@ -254,7 +255,7 @@ header h1 {
 }
 
 #newspaper-name {
-    font-size: 2.5rem;
+    font-size: 2.2rem;
     font-weight: bold;
     letter-spacing: 2px;
 }
@@ -262,6 +263,7 @@ header h1 {
 #newspaper-date {
     font-style: italic;
     margin-top: 5px;
+    font-size: 0.9rem;
 }
 
 .article {
@@ -269,7 +271,7 @@ header h1 {
 }
 
 #article-headline {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     font-weight: bold;
     margin-bottom: 10px;
 }
@@ -287,12 +289,13 @@ header h1 {
     font-style: italic;
     margin-bottom: 20px;
     color: #666;
+    font-size: 0.9rem;
 }
 
 #article-content p {
     margin-bottom: 15px;
     text-align: justify;
-    font-size: 1.1rem;
+    font-size: 1rem;
 }
 
 /* Retro Newspaper Style */
@@ -311,8 +314,8 @@ header h1 {
 }
 
 .retro #article-content {
-    column-count: 2;
-    column-gap: 30px;
+    column-count: 1;
+    column-gap: 0;
 }
 
 /* Modern Blog Style */
@@ -331,11 +334,13 @@ header h1 {
     font-family: 'Arial', sans-serif;
     color: #1a73e8;
     text-transform: none;
+    font-size: 2rem;
 }
 
 .modern #article-headline {
     font-family: 'Arial', sans-serif;
     color: #1a73e8;
+    font-size: 1.5rem;
 }
 
 .modern #article-headline::after {
@@ -350,6 +355,7 @@ header h1 {
 .modern #article-content p {
     font-family: 'Arial', sans-serif;
     line-height: 1.8;
+    font-size: 0.95rem;
 }
 
 /* Futuristic Hologram Style */
@@ -398,7 +404,7 @@ header h1 {
     margin-bottom: 25px;
     text-transform: uppercase;
     letter-spacing: 2px;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     text-align: center;
     font-family: 'Times New Roman', serif;
 }
@@ -427,12 +433,13 @@ header h1 {
     margin-bottom: 10px;
     font-family: 'Georgia', serif;
     letter-spacing: 0.5px;
+    font-size: 0.9rem;
 }
 
 .comment-author::before {
     content: '▶';
     margin-right: 8px;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
 }
 
 .comment-text {
@@ -440,10 +447,11 @@ header h1 {
     font-style: italic;
     line-height: 1.6;
     color: #333;
+    font-size: 0.9rem;
 }
 
 .comment-meta {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: #777;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -732,11 +740,11 @@ footer a:hover {
 /* Responsive Design */
 @media (max-width: 768px) {
     .container {
-        padding: 15px;
+        padding: 10px;
     }
     
     header h1 {
-        font-size: 2.2rem;
+        font-size: 1.8rem;
     }
     
     .input-container {
@@ -744,17 +752,20 @@ footer a:hover {
     }
     
     #scenario-input {
-        border-radius: 0;
-        margin-bottom: 15px;
+        margin-bottom: 10px;
+        font-size: 0.9rem;
     }
     
     #generate-btn {
-        border-radius: 0;
+        font-size: 0.9rem;
     }
     
     .retro #article-content,
-    .monochrome #article-content {
-        column-count: 1; /* Single column on mobile */
+    .modern #article-content,
+    .monochrome #article-content,
+    .futuristic #article-content {
+        column-count: 1;
+        column-gap: 0;
     }
     
     .suggestion-buttons {
@@ -765,53 +776,89 @@ footer a:hover {
         flex-direction: column;
     }
     
-    .monochrome #newspaper-name {
-        font-size: 2.2rem;
-        letter-spacing: 2px;
-    }
-    
-    .monochrome #newspaper-date {
-        width: 100%;
-    }
-    
-    .monochrome #article-headline {
-        font-size: 1.8rem;
-    }
-    
-    .monochrome #article-content p:first-of-type::first-letter {
-        font-size: 2.5rem;
-    }
-}
-
-@media (max-width: 480px) {
-    header h1 {
-        font-size: 1.8rem;
-        letter-spacing: 2px;
+    .newspaper {
+        padding: 15px;
     }
     
     #newspaper-name {
-        font-size: 1.8rem;
+        font-size: 1.6rem;
+    }
+    
+    #newspaper-date {
+        font-size: 0.85rem;
     }
     
     #article-headline {
         font-size: 1.4rem;
     }
     
-    .monochrome .newspaper-header {
-        padding-bottom: 20px;
-        margin-bottom: 20px;
+    .monochrome #article-headline {
+        font-size: 1.6rem;
     }
     
-    .monochrome #article-content {
-        font-size: 0.95rem;
+    .monochrome #newspaper-name {
+        font-size: 2rem;
+        letter-spacing: 2px;
     }
     
-    .newspaper {
-        padding: 20px;
+    #article-byline {
+        font-size: 0.8rem;
     }
     
-    .monochrome {
-        padding: 25px 15px;
+    #article-content p {
+        font-size: 0.9rem;
+    }
+    
+    .comments-section h3 {
+        font-size: 1rem;
+    }
+    
+    .comment-author {
+        font-size: 0.85rem;
+    }
+    
+    .comment-text {
+        font-size: 0.85rem;
+    }
+    
+    .comment-meta {
+        font-size: 0.7rem;
+    }
+    
+    #download-pdf-btn {
+        font-size: 0.85rem;
+        padding: 10px 16px;
+    }
+    
+    .mobile-device #download-pdf-btn {
+        font-size: 0.75rem;
+        padding: 8px 12px;
+        width: 100%;
+        margin-bottom: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    header h1 {
+        font-size: 1.4rem;
+        letter-spacing: 1px;
+    }
+    
+    #newspaper-name {
+        font-size: 1.4rem;
+    }
+    
+    #article-headline {
+        font-size: 1.3rem;
+    }
+    
+    .monochrome #article-headline {
+        font-size: 1.4rem;
+    }
+    
+    .monochrome #newspaper-name {
+        font-size: 1.7rem;
+        letter-spacing: 1px;
     }
 }
 
@@ -988,9 +1035,9 @@ footer a:hover {
 }
 
 .monochrome #article-content {
-    column-count: 2;
-    column-gap: 40px;
-    column-rule: 1px solid #ddd;
+    column-count: 1;
+    column-gap: 0;
+    column-rule: none;
     text-align: justify;
     font-family: 'Georgia', serif;
     line-height: 1.7;
@@ -999,6 +1046,7 @@ footer a:hover {
 .monochrome #article-content p {
     margin-bottom: 20px;
     text-indent: 20px;
+    font-size: 0.95rem;
 }
 
 .monochrome #article-content p:first-of-type::first-letter {
@@ -1232,4 +1280,76 @@ footer a:hover {
     margin: 0;
     padding: 0;
     pointer-events: none;
+}
+
+#download-pdf-btn {
+    padding: 12px 20px;
+    background-color: #000;
+    color: #fff;
+    border: none;
+    border-radius: 0;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.9rem;
+    font-family: 'Times New Roman', serif;
+}
+
+#download-pdf-btn:hover {
+    background-color: #333;
+    transform: translateY(-2px);
+}
+
+.monochrome #download-pdf-btn {
+    background-color: #000;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.8rem;
+    transition: all 0.3s;
+}
+
+.monochrome #download-pdf-btn:hover {
+    background-color: #333;
+    transform: translateY(-2px);
+}
+
+.futuristic #download-pdf-btn {
+    background-color: transparent;
+    color: #00ffcc;
+    border: 1px solid #00ffcc;
+    box-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
+    text-shadow: 0 0 5px #00ffcc;
+}
+
+.futuristic #download-pdf-btn:hover {
+    background-color: rgba(0, 255, 204, 0.2);
+    box-shadow: 0 0 15px rgba(0, 255, 204, 0.5);
+}
+
+.modern #download-pdf-btn {
+    background-color: #1a73e8;
+    color: white;
+    border: none;
+}
+
+.modern #download-pdf-btn:hover {
+    background-color: #1558b4;
+}
+
+@media (max-width: 768px) {
+    #download-pdf-btn {
+        font-size: 0.85rem;
+        padding: 10px 16px;
+    }
+    
+    .mobile-device #download-pdf-btn {
+        font-size: 0.75rem;
+        padding: 8px 12px;
+        width: 100%;
+        margin-bottom: 8px;
+    }
 } 
