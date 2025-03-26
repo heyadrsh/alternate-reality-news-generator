@@ -207,11 +207,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const articleHeadline = document.getElementById('article-headline');
     const articleByline = document.getElementById('article-byline');
     const articleContent = document.getElementById('article-content');
+    articleContent.style.backgroundColor = '#FFFFFF';
     const commentsContainer = document.getElementById('comments-container');
     
     // API Configuration
     const GEMINI_API_KEY = 'AIzaSyDpvFPCkg9NuuO7JZ01R4ri7IvR_Q9Rlbo';
     const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+    const GEMINI_IMAGE_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent';
+    
+    // Elements for the article image
+    const articleImageContainer = document.getElementById('article-image-container');
+    const articleImage = document.getElementById('article-image');
+    const imageCaption = document.getElementById('image-caption');
+    
+    // Cache for image prompts to reduce API calls
+    const imagePromptCache = new Map();
     
     // UI Module for handling UI updates
     const UI = {
@@ -232,9 +242,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
         updateArticle: (content) => {
-            // Update the newspaper name
-            newspaperName.textContent = generateNewspaperName();
-            
             // Set the current date
             setNewspaperDate();
             
@@ -244,8 +251,19 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update the article byline
             articleByline.textContent = content.byline;
             
+            // Display the image if available
+            if (content.image) {
+                articleImage.src = `data:${content.image.mimeType};base64,${content.image.data}`;
+                // Update the image caption to be more specific to the content
+                imageCaption.textContent = `Visual coverage: ${content.headline.split(':')[0]}`;
+                articleImageContainer.classList.remove('hidden');
+            } else {
+                articleImageContainer.classList.add('hidden');
+            }
+            
             // Update the article content
             articleContent.innerHTML = formatArticleContent(content.content);
+            articleContent.style.backgroundColor = '#FFFFFF';
         },
         updateComments: (comments) => {
             commentsContainer.innerHTML = '';
@@ -304,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // Helper function to create a comment element
+    // Helper function to create a comment element with vintage-appropriate timestamps
     const createCommentElement = (comment) => {
         const commentElement = document.createElement('div');
         commentElement.className = 'comment';
@@ -319,7 +337,32 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const metaElement = document.createElement('div');
         metaElement.className = 'comment-meta';
-        metaElement.textContent = comment.meta;
+        
+        // If the meta contains modern-style timestamps, replace them with vintage-appropriate ones
+        let metaText = comment.meta;
+        if (metaText.includes('Posted') || metaText.includes('likes')) {
+            const vintageYear = window.vintageDate ? window.vintageDate.getFullYear() : 1970;
+            
+            // Parse the hours from the original meta if present
+            let hours = 2; // Default
+            const hoursMatch = metaText.match(/Posted (\d+) hours? ago/);
+            if (hoursMatch && hoursMatch[1]) {
+                hours = parseInt(hoursMatch[1]);
+            }
+            
+            // Create vintage-appropriate meta text based on era
+            if (vintageYear < 1950) {
+                metaText = `Reader correspondence • ${window.vintageDate.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}`;
+            } else if (vintageYear < 1970) {
+                metaText = `Letter to the Editor • ${window.vintageDate.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}`;
+            } else if (vintageYear < 1990) {
+                metaText = `Public Opinion • Received via Telegram • ${window.vintageDate.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}`;
+            } else {
+                metaText = `Fax Communication • ${window.vintageDate.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}`;
+            }
+        }
+        
+        metaElement.textContent = metaText;
         
         commentElement.appendChild(authorElement);
         commentElement.appendChild(textElement);
@@ -434,6 +477,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (content.comments.length > 4) {
                     content.comments = content.comments.slice(0, 4);
                 }
+
+                // Generate image for the article
+                try {
+                    // Get the current newspaper style
+                    const newspaperStyle = document.querySelector('.newspaper')?.classList[1] || 'monochrome';
+                    
+                    // Generate image prompt based on content and style
+                    const imagePrompt = await generateImagePrompt(scenario, content, newspaperStyle);
+                    
+                    // Generate the image using the prompt
+                    const imageData = await generateImage(apiKey, imagePrompt);
+                    
+                    // Add image data to the content
+                    content.image = imageData;
+                } catch (imageError) {
+                    console.error('Image generation failed:', imageError);
+                    // Continue without an image if image generation fails
+                    content.image = null;
+                }
                 
                 // Save to history
                 saveArticleToHistory(scenario, content);
@@ -445,57 +507,204 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 throw error;
             }
-        }
+        },
+
+        // Add other API methods if needed
     };
     
-    // Set current date in newspaper format
+    // Set newspaper date to a vintage date instead of current date
     const setNewspaperDate = () => {
-        const date = new Date();
+        // Generate a random vintage date between 1940 and 2000
+        const startYear = 1940;
+        const endYear = 2000;
+        const randomYear = Math.floor(Math.random() * (endYear - startYear + 1)) + startYear;
+        
+        // Generate random month and day
+        const randomMonth = Math.floor(Math.random() * 12);
+        const daysInMonth = new Date(randomYear, randomMonth + 1, 0).getDate();
+        const randomDay = Math.floor(Math.random() * daysInMonth) + 1;
+        
+        // Create the vintage date
+        const vintageDate = new Date(randomYear, randomMonth, randomDay);
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        newspaperDate.textContent = date.toLocaleDateString('en-US', options);
+        newspaperDate.textContent = vintageDate.toLocaleDateString('en-US', options);
+        
+        // Store the vintage date for PDF generation
+        window.vintageDate = vintageDate;
     };
     
-    // Generate a random newspaper name
+    // Generate a better vintage newspaper name based on the era
     const generateNewspaperName = () => {
-        const baseNames = [
-            'The Bharat Chronicle', 
-            'The Delhi Times Alternate', 
-            'The Mumbai What-If Tribune', 
-            'The Kolkata Divergent Post', 
-            'The Chennai Multiverse Herald',
-            'The Bangalore Reality Gazette',
-            'The Indian Parallel Express'
-        ];
+        // Check if we have a vintage date set
+        const vintageYear = window.vintageDate ? window.vintageDate.getFullYear() : 1970;
+        
+        // Names appropriate for different eras
+        let baseNames;
+        
+        if (vintageYear < 1950) {
+            // Pre-1950s names
+            baseNames = [
+                'The Delhi Chronicle',
+                'The Indian Herald',
+                'The Hindustan Times-Gazette',
+                'The Calcutta Observer',
+                'The Bombay Daily',
+                'The Imperial Post',
+                'The Colonial Times'
+            ];
+        } else if (vintageYear < 1970) {
+            // 1950s-1960s names
+            baseNames = [
+                'The New Indian Express',
+                'The National Herald',
+                'The Bharat Times',
+                'The Independent Observer',
+                'The Modern Chronicle',
+                'The Republic Gazette',
+                'The Delhi Telegraph'
+            ];
+        } else if (vintageYear < 1990) {
+            // 1970s-1980s names
+            baseNames = [
+                'The Indian Post',
+                'The Democratic Chronicle',
+                'The Progressive Herald',
+                'The Union Times',
+                'The Federal Observer',
+                'The People\'s Daily',
+                'The National Mirror'
+            ];
+        } else {
+            // 1990s-2000s names
+            baseNames = [
+                'The Millennium Post',
+                'The Global Times',
+                'The Digital Chronicle',
+                'The Modern Express',
+                'The Information Age',
+                'The New Millennium Herald',
+                'The Satellite Times'
+            ];
+        }
         
         return baseNames[Math.floor(Math.random() * baseNames.length)];
     };
     
     // Format the article content from plain text to HTML with paragraphs
     const formatArticleContent = (content) => {
-        // If content is already HTML (contains paragraph tags), return as is
+        // If content is already HTML, add a date before the first paragraph
         if (content.includes('<p>')) {
-            return content;
+            // Generate an article date that's 1-10 days older than the newspaper date
+            const articleDate = new Date(window.vintageDate);
+            const daysBack = Math.floor(Math.random() * 10) + 1;
+            articleDate.setDate(articleDate.getDate() - daysBack);
+            const formattedDate = articleDate.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            
+            // Create dateline for the article
+            let locationDateline = '';
+            // Generate random Indian city based on era
+            const vintageYear = window.vintageDate ? window.vintageDate.getFullYear() : 1970;
+            let cities;
+            
+            if (vintageYear < 1950) {
+                cities = ['BOMBAY', 'CALCUTTA', 'MADRAS', 'NEW DELHI', 'LAHORE', 'KARACHI'];
+            } else if (vintageYear < 1970) {
+                cities = ['BOMBAY', 'CALCUTTA', 'MADRAS', 'NEW DELHI', 'AGRA', 'LUCKNOW'];
+            } else {
+                cities = ['MUMBAI', 'KOLKATA', 'CHENNAI', 'NEW DELHI', 'BANGALORE', 'HYDERABAD'];
+            }
+            
+            const randomCity = cities[Math.floor(Math.random() * cities.length)];
+            locationDateline = `<p class="dateline"><strong>${randomCity}</strong> - ${formattedDate} - `;
+            
+            // Insert the dateline at the beginning of the content
+            return content.replace('<p>', `${locationDateline}`);
         }
         
-        // Otherwise, split by double newlines and wrap in paragraph tags
-        return content
-            .split(/\n\n+/)
-            .map(paragraph => `<p>${paragraph.trim()}</p>`)
-            .join('');
+        // For plain text, add a date and split by double newlines
+        // Generate an article date that's 1-10 days older than the newspaper date
+        const articleDate = new Date(window.vintageDate);
+        const daysBack = Math.floor(Math.random() * 10) + 1;
+        articleDate.setDate(articleDate.getDate() - daysBack);
+        const formattedDate = articleDate.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        
+        // Generate random Indian city based on era
+        const vintageYear = window.vintageDate ? window.vintageDate.getFullYear() : 1970;
+        let cities;
+        
+        if (vintageYear < 1950) {
+            cities = ['BOMBAY', 'CALCUTTA', 'MADRAS', 'NEW DELHI', 'LAHORE', 'KARACHI'];
+        } else if (vintageYear < 1970) {
+            cities = ['BOMBAY', 'CALCUTTA', 'MADRAS', 'NEW DELHI', 'AGRA', 'LUCKNOW'];
+        } else {
+            cities = ['MUMBAI', 'KOLKATA', 'CHENNAI', 'NEW DELHI', 'BANGALORE', 'HYDERABAD'];
+        }
+        
+        const randomCity = cities[Math.floor(Math.random() * cities.length)];
+        const locationDateline = `<p class="dateline"><strong>${randomCity}</strong> - ${formattedDate} - `;
+        
+        // Split content and wrap in paragraph tags, adding the dateline to the first paragraph
+        const paragraphs = content.split(/\n\n+/);
+        if (paragraphs.length > 0) {
+            paragraphs[0] = `${locationDateline}${paragraphs[0]}</p>`;
+            // Wrap other paragraphs
+            for (let i = 1; i < paragraphs.length; i++) {
+                paragraphs[i] = `<p>${paragraphs[i].trim()}</p>`;
+            }
+            return paragraphs.join('');
+        }
+        
+        // Default formatting if there are no paragraphs
+        return `${locationDateline}${content.trim()}</p>`;
     };
     
     // Save article to history in localStorage
     const saveArticleToHistory = (scenario, article) => {
-        const history = JSON.parse(localStorage.getItem('newsHistory')) || [];
-        // Limit history to 10 items
-        if (history.length >= 10) {
-            history.pop(); // Remove the oldest item
+        try {
+            const history = JSON.parse(localStorage.getItem('newsHistory')) || [];
+            
+            // Create a copy of the article without the image data to save space
+            const articleForStorage = { ...article };
+            // Always remove image data before storing
+            delete articleForStorage.image;
+            
+            // Limit history to 10 items
+            if (history.length >= 10) {
+                history.pop(); // Remove the oldest item
+            }
+            
+            history.unshift({ scenario, article: articleForStorage, date: new Date().toISOString() }); // Add new item at the beginning
+            localStorage.setItem('newsHistory', JSON.stringify(history));
+            
+            // Update the history display
+            displayHistory();
+        } catch (error) {
+            console.error('Failed to save article to history:', error);
+            // If storage quota is exceeded, try removing older items
+            if (error.name === 'QuotaExceededError' || error.message.includes('quota')) {
+                const history = JSON.parse(localStorage.getItem('newsHistory')) || [];
+                // Keep only the 5 most recent items
+                const trimmedHistory = history.slice(0, 5);
+                try {
+                    localStorage.setItem('newsHistory', JSON.stringify(trimmedHistory));
+                    console.log('Trimmed history to save space');
+                } catch (e) {
+                    // If still can't save, clear history
+                    localStorage.removeItem('newsHistory');
+                    console.log('Cleared history due to storage limitations');
+                }
+            }
         }
-        history.unshift({ scenario, article, date: new Date().toISOString() }); // Add new item at the beginning
-        localStorage.setItem('newsHistory', JSON.stringify(history));
-        
-        // Update the history display
-        displayHistory();
     };
     
     // Display history with mobile optimization
@@ -514,7 +723,10 @@ document.addEventListener('DOMContentLoaded', () => {
         historyContainer.innerHTML = `
             <div class="history-header">
                 <h3>Previous Articles</h3>
-                <button id="toggle-history-btn">Hide</button>
+                <div class="history-header-buttons">
+                    <button id="clear-history-btn">Clear History</button>
+                    <button id="toggle-history-btn">Hide</button>
+                </div>
             </div>
             <div id="history-content" class="${isMobile ? 'mobile-history-content' : ''}"></div>
         `;
@@ -526,8 +738,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const emptyMessage = document.createElement('p');
             emptyMessage.textContent = 'No previous articles yet. Generate some!';
             historyContent.appendChild(emptyMessage);
-            return;
+            
+            // Hide the clear button if there's no history
+            document.getElementById('clear-history-btn').style.display = 'none';
         }
+        
+        // Add event listener for clear history button
+        document.getElementById('clear-history-btn').addEventListener('click', clearHistory);
+        
+        // Add toggle functionality
+        document.getElementById('toggle-history-btn').addEventListener('click', toggleHistory);
         
         // Limit history items on mobile for performance
         const historyToShow = isMobile ? Math.min(5, history.length) : history.length;
@@ -552,17 +772,61 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="history-date">${formattedDate}</div>
             `;
             
-            historyItem.addEventListener('click', () => {
-                // Re-display the article
-                UI.updateArticle(entry.article);
-                UI.updateComments(entry.article.comments);
-                UI.showNews();
-                
-                // On mobile, scroll to the article
-                if (isMobile) {
-                    setTimeout(() => {
-                        newsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 100);
+            historyItem.addEventListener('click', async () => {
+                try {
+                    // Show loading state
+                    UI.showLoading();
+                    
+                    // Get the article data
+                    const articleData = entry.article;
+                    
+                    // First display the article without an image
+                    articleImageContainer.classList.add('hidden');
+                    UI.updateArticle(articleData);
+                    UI.updateComments(articleData.comments);
+                    UI.showNews();
+                    
+                    // Get API key
+                    const apiKey = getApiKey();
+                    if (!apiKey) {
+                        throw new Error('API key is required for image generation');
+                    }
+                    
+                    // Get the current newspaper style
+                    const newspaperStyle = document.querySelector('.newspaper')?.classList[1] || 'monochrome';
+                    
+                    // Regenerate the image
+                    try {
+                        // Generate image prompt based on content and style
+                        const imagePrompt = await generateImagePrompt(entry.scenario, articleData, newspaperStyle);
+                        
+                        // Generate the image using the prompt
+                        const imageData = await generateImage(apiKey, imagePrompt);
+                        
+                        // Update the article with the new image
+                        if (imageData) {
+                            articleImage.src = `data:${imageData.mimeType};base64,${imageData.data}`;
+                            imageCaption.textContent = `Visual coverage: ${articleData.headline.split(':')[0]}`;
+                            articleImageContainer.classList.remove('hidden');
+                        }
+                    } catch (imageError) {
+                        console.error('Image regeneration failed:', imageError);
+                        // Continue without an image if generation fails
+                        articleImageContainer.classList.add('hidden');
+                    }
+                    
+                    // Hide loading state
+                    UI.hideLoading();
+                    
+                    // On mobile, scroll to the article
+                    if (isMobile) {
+                        setTimeout(() => {
+                            newsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 100);
+                    }
+                } catch (error) {
+                    UI.hideLoading();
+                    UI.showError(`Failed to load article: ${error.message}`);
                 }
             });
             
@@ -580,9 +844,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             historyContent.appendChild(viewMoreBtn);
         }
-        
-        // Add toggle functionality
-        document.getElementById('toggle-history-btn').addEventListener('click', toggleHistory);
     };
     
     // Function to display all history items
@@ -608,17 +869,61 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="history-date">${formattedDate}</div>
             `;
             
-            historyItem.addEventListener('click', () => {
-                // Re-display the article
-                UI.updateArticle(entry.article);
-                UI.updateComments(entry.article.comments);
-                UI.showNews();
-                
-                // On mobile, scroll to the article
-                if (isMobile) {
-                    setTimeout(() => {
-                        newsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 100);
+            historyItem.addEventListener('click', async () => {
+                try {
+                    // Show loading state
+                    UI.showLoading();
+                    
+                    // Get the article data
+                    const articleData = entry.article;
+                    
+                    // First display the article without an image
+                    articleImageContainer.classList.add('hidden');
+                    UI.updateArticle(articleData);
+                    UI.updateComments(articleData.comments);
+                    UI.showNews();
+                    
+                    // Get API key
+                    const apiKey = getApiKey();
+                    if (!apiKey) {
+                        throw new Error('API key is required for image generation');
+                    }
+                    
+                    // Get the current newspaper style
+                    const newspaperStyle = document.querySelector('.newspaper')?.classList[1] || 'monochrome';
+                    
+                    // Regenerate the image
+                    try {
+                        // Generate image prompt based on content and style
+                        const imagePrompt = await generateImagePrompt(entry.scenario, articleData, newspaperStyle);
+                        
+                        // Generate the image using the prompt
+                        const imageData = await generateImage(apiKey, imagePrompt);
+                        
+                        // Update the article with the new image
+                        if (imageData) {
+                            articleImage.src = `data:${imageData.mimeType};base64,${imageData.data}`;
+                            imageCaption.textContent = `Visual coverage: ${articleData.headline.split(':')[0]}`;
+                            articleImageContainer.classList.remove('hidden');
+                        }
+                    } catch (imageError) {
+                        console.error('Image regeneration failed:', imageError);
+                        // Continue without an image if generation fails
+                        articleImageContainer.classList.add('hidden');
+                    }
+                    
+                    // Hide loading state
+                    UI.hideLoading();
+                    
+                    // On mobile, scroll to the article
+                    if (isMobile) {
+                        setTimeout(() => {
+                            newsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 100);
+                    }
+                } catch (error) {
+                    UI.hideLoading();
+                    UI.showError(`Failed to load article: ${error.message}`);
                 }
             });
             
@@ -1090,6 +1395,165 @@ document.addEventListener('DOMContentLoaded', () => {
         suggestionButtonsContainer.appendChild(actionButtonsContainer);
     };
     
+    // Generate a prompt for the image generation based on article content
+    const generateImagePrompt = async (scenario, content, style) => {
+        const apiKey = getApiKey();
+        if (!apiKey) {
+            throw new Error('API key is required for image generation');
+        }
+
+        // Create a cache key using scenario and headline
+        const cacheKey = `${scenario}_${content.headline}_${style}`;
+        
+        // Check if we already have a prompt for this scenario and style
+        if (imagePromptCache.has(cacheKey)) {
+            console.log('Using cached image prompt');
+            return imagePromptCache.get(cacheKey);
+        }
+
+        // Extract the first paragraph text from content, handling both plain text and HTML
+        let firstParagraph = '';
+        if (content.content) {
+            // If the content includes HTML tags, extract text from it
+            if (content.content.includes('<p>')) {
+                // Create a temporary div to parse HTML content
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = content.content;
+                // Get text from the first paragraph
+                const firstP = tempDiv.querySelector('p');
+                firstParagraph = firstP ? firstP.textContent : content.content.split('\n')[0];
+            } else {
+                // For plain text, just get the first paragraph
+                firstParagraph = content.content.split('\n')[0];
+            }
+        }
+
+        // Create a prompt for Gemini to generate the image prompt
+        const promptGenerationPrompt = `
+        Based on the following news article from an alternate reality, generate a prompt for an image generation AI.
+        
+        Scenario: "${scenario}"
+        Headline: "${content.headline}"
+        Article Content (first paragraph): "${firstParagraph}"
+        
+        The image should:
+        1. Visually represent the key elements of the news story
+        2. NOT contain any text, words, or letters (the image generation AI struggles with text)
+        3. Reflect the ${style} newspaper style (${getStyleDescription(style)})
+        4. Be photorealistic and detailed
+        5. Focus on the visual impact of the scenario
+        
+        The prompt should start with "Generate an image of" and be detailed but concise (max 60 words).
+        Return only the image generation prompt without any explanations, introductions, or quotation marks.
+        `;
+
+        try {
+            // Call Gemini to generate the image prompt
+            const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{ text: promptGenerationPrompt }]
+                    }],
+                    generationConfig: {
+                        temperature: 0.7,
+                        topK: 40,
+                        topP: 0.95,
+                        maxOutputTokens: 1024,
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to generate image prompt');
+            }
+
+            const data = await response.json();
+            const imagePrompt = data.candidates[0].content.parts[0].text.trim();
+            
+            console.log('Generated image prompt:', imagePrompt);
+            
+            // Store the prompt in the cache
+            imagePromptCache.set(cacheKey, imagePrompt);
+            
+            // Limit cache size to 20 entries to avoid memory issues
+            if (imagePromptCache.size > 20) {
+                const oldestKey = imagePromptCache.keys().next().value;
+                imagePromptCache.delete(oldestKey);
+            }
+            
+            return imagePrompt;
+        } catch (error) {
+            console.error('Error generating image prompt:', error);
+            throw error;
+        }
+    };
+
+    // Get description of newspaper style for image prompt
+    const getStyleDescription = (style) => {
+        switch (style) {
+            case 'monochrome':
+                return 'vintage black and white, high contrast, grainy texture, 1940s press photograph style';
+            case 'retro':
+                return 'sepia-toned, vintage 1970s newspaper photograph, slightly faded, warm tones';
+            case 'modern':
+                return 'contemporary high-resolution news photograph, crisp details, realistic colors';
+            case 'futuristic':
+                return 'sci-fi aesthetic, high-tech, sleek, with subtle blue tones and futuristic elements';
+            default:
+                return 'vintage black and white, high contrast, grainy texture, 1940s press photograph style';
+        }
+    };
+
+    // Generate image using Gemini image generation API
+    const generateImage = async (apiKey, prompt) => {
+        const response = await fetch(`${GEMINI_IMAGE_API_URL}?key=${apiKey}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{ text: prompt }]
+                }],
+                generation_config: {
+                    temperature: 1,
+                    topP: 0.95,
+                    topK: 40,
+                    maxOutputTokens: 8192,
+                    responseModalities: ["image", "text"],
+                    responseMimeType: "text/plain"
+                }
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to generate image');
+        }
+
+        const data = await response.json();
+        
+        // Extract image data from response
+        if (data.candidates && data.candidates.length > 0) {
+            const candidate = data.candidates[0];
+            if (candidate.content && candidate.content.parts) {
+                for (const part of candidate.content.parts) {
+                    if (part.inlineData) {
+                        return {
+                            data: part.inlineData.data,
+                            mimeType: part.inlineData.mimeType
+                        };
+                    }
+                }
+            }
+        }
+        
+        throw new Error('No image found in API response');
+    };
+    
     // Generate the news article
     const generateNews = async (scenario) => {
         UI.showLoading();
@@ -1151,6 +1615,12 @@ document.addEventListener('DOMContentLoaded', () => {
             viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
             document.head.appendChild(viewportMeta);
         }
+        
+        // Set a vintage date on initialization
+        setNewspaperDate();
+        
+        // Set a vintage-appropriate newspaper name
+        newspaperName.textContent = generateNewspaperName();
         
         // Set up event listeners
         generateBtn.addEventListener('click', () => {
@@ -1472,31 +1942,51 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Helper function to generate the prompt for the Gemini API
     const generatePrompt = (scenario) => {
-        return `
-        You are a creative writer tasked with creating a fictional news article from an alternate reality where "${scenario}". 
+        // Get era information for context
+        const vintageYear = window.vintageDate ? window.vintageDate.getFullYear() : 1970;
+        const formattedDate = window.vintageDate ? window.vintageDate.toLocaleDateString('en-US', { 
+            month: 'long', 
+            day: 'numeric', 
+            year: 'numeric' 
+        }) : 'January 1, 1970';
         
-        The article should be set in India or involve India and its neighboring countries (Pakistan, Bangladesh, Nepal, Bhutan, Sri Lanka, etc.) as the main focus. Include specific details like Indian cities, landmarks, cultural elements, and Indian names for people and organizations.
-        
-        The article should feel like a professional news piece with a serious tone, unless the scenario implies a humorous context. Include specific details like names, dates, and locations relevant to the alternate reality in an Indian context.
-        
-        Format your response as a JSON object with the following structure:
-        {
-            "headline": "A catchy headline for the news article (15-25 words)",
-            "byline": "Author name and title (e.g., 'By Rajesh Kumar | Delhi Correspondent')",
-            "content": "The main article content with 4-6 paragraphs, each 2-4 sentences long. Include at least two quotes from fictional people in this alternate reality. Make sure to reference Indian cities, culture, or neighboring countries.",
-            "comments": [
-                {
-                    "author": "Username of commenter (use Indian-inspired usernames)",
-                    "text": "A quirky comment reacting to the article (1-2 sentences)",
-                    "meta": "Posted X hours ago • Y likes (e.g., 'Posted 2 hours ago • 157 likes')"
-                }
-            ]
+        // Era-specific context to guide the article tone and style
+        let eraContext;
+        if (vintageYear < 1950) {
+            eraContext = `This article is from ${formattedDate}, during the pre-independence or early independence era of India. The language should reflect formal British-influenced journalism of that period.`;
+        } else if (vintageYear < 1970) {
+            eraContext = `This article is from ${formattedDate}, during the early decades after Indian independence. The language should reflect the optimistic nationalism of the Nehru era.`;
+        } else if (vintageYear < 1990) {
+            eraContext = `This article is from ${formattedDate}, during the 1970s-1980s in India. The language should reflect the journalistic style of that era.`;
+        } else {
+            eraContext = `This article is from ${formattedDate}, during the 1990s or early 2000s in India. The language should reflect the economic liberalization era.`;
         }
-        
-        Make sure to include exactly 4 comments total, with diverse perspectives from people living in this alternate reality.
-        The response must be a valid JSON object that can be parsed with JSON.parse().
-        Do not include any text before or after the JSON object.
-        `;
+
+        return `
+            You are a creative writer tasked with creating a fictional news article from an alternate reality where "${scenario}". 
+            
+            ${eraContext} The article should be set in India or involve India and its neighboring countries (Pakistan, Bangladesh, Nepal, Bhutan, Sri Lanka, etc.) as the main focus. Include specific details like Indian cities, landmarks, cultural elements, and Indian names for people and organizations that would be historically accurate for ${formattedDate}.
+            
+            The article should feel like a professional news piece with a serious tone, unless the scenario implies a humorous context. Include specific details like names, dates, and locations relevant to the alternate reality in an Indian context.
+            
+            Format your response as a JSON object with the following structure:
+            {
+                "headline": "A catchy headline for the news article (15-25 words)",
+                "byline": "Author name and title (e.g., 'By Rajesh Kumar | Delhi Correspondent')",
+                "content": "The main article content with 4-6 paragraphs, each 2-4 sentences long. Include at least two quotes from fictional people in this alternate reality. Make sure to reference Indian cities, culture, or neighboring countries.",
+                "comments": [
+                    {
+                        "author": "Username of commenter (use Indian-inspired usernames)",
+                        "text": "A quirky comment reacting to the article (1-2 sentences)",
+                        "meta": "Posted X hours ago • Y likes (e.g., 'Posted 2 hours ago • 157 likes')"
+                    }
+                ]
+            }
+            
+            Make sure to include exactly 4 comments total, with diverse perspectives from people living in this alternate reality.
+            The response must be a valid JSON object that can be parsed with JSON.parse().
+            Do not include any text before or after the JSON object.
+            `;
     };
     
     // Show loading indicator
@@ -1562,266 +2052,418 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     // Function to generate and download a PDF of the article
-    const generatePDF = () => {
+    const generatePDF = async () => {
         // Show loading message
         UI.showError('Preparing PDF for download...');
         
-        // Create a container that will be converted to PDF
-        const pdfContainer = document.createElement('div');
-        pdfContainer.style.width = '8.5in';
-        pdfContainer.style.padding = '0.5in';
-        pdfContainer.style.backgroundColor = '#fff';
-        pdfContainer.style.color = '#000';
-        pdfContainer.style.fontFamily = 'Times New Roman, serif';
-        pdfContainer.style.position = 'relative';
-        pdfContainer.style.boxSizing = 'border-box';
-        
-        // Create the newspaper header
-        const headerDiv = document.createElement('div');
-        headerDiv.style.textAlign = 'center';
-        headerDiv.style.marginBottom = '20px';
-        headerDiv.style.borderBottom = '2px solid #000';
-        headerDiv.style.paddingBottom = '10px';
-        
-        // Newspaper name
-        const nameElement = document.createElement('h1');
-        nameElement.textContent = newspaperName.textContent;
-        nameElement.style.fontSize = '32px';
-        nameElement.style.fontWeight = 'bold';
-        nameElement.style.margin = '0 0 5px 0';
-        nameElement.style.textTransform = 'uppercase';
-        nameElement.style.fontFamily = 'Times New Roman, serif';
-        
-        // Date
-        const dateElement = document.createElement('p');
-        dateElement.textContent = newspaperDate.textContent;
-        dateElement.style.fontSize = '16px';
-        dateElement.style.fontStyle = 'italic';
-        dateElement.style.margin = '0';
-        
-        headerDiv.appendChild(nameElement);
-        headerDiv.appendChild(dateElement);
-        
-        // Create horizontal rule
-        const hrElement = document.createElement('hr');
-        hrElement.style.border = 'none';
-        hrElement.style.borderTop = '1px solid black';
-        hrElement.style.margin = '20px 0';
-        
-        // Create article section
-        const articleDiv = document.createElement('div');
-        articleDiv.style.marginBottom = '30px';
-        
-        // Article headline
-        const headlineElement = document.createElement('h2');
-        headlineElement.textContent = articleHeadline.textContent;
-        headlineElement.style.fontSize = '24px';
-        headlineElement.style.fontWeight = 'bold';
-        headlineElement.style.marginBottom = '10px';
-        headlineElement.style.textTransform = 'uppercase';
-        
-        // Article byline
-        const bylineElement = document.createElement('p');
-        bylineElement.textContent = articleByline.textContent;
-        bylineElement.style.fontSize = '14px';
-        bylineElement.style.fontStyle = 'italic';
-        bylineElement.style.marginBottom = '20px';
-        bylineElement.style.borderBottom = '1px solid #ccc';
-        bylineElement.style.paddingBottom = '10px';
-        
-        // Article content with columns
-        const contentContainer = document.createElement('div');
-        contentContainer.style.columnCount = '2';
-        contentContainer.style.columnGap = '20px';
-        contentContainer.style.textAlign = 'justify';
-        
-        // Clone the article content
-        const contentElement = document.createElement('div');
-        contentElement.innerHTML = articleContent.innerHTML;
-        contentElement.style.fontSize = '14px';
-        contentElement.style.lineHeight = '1.5';
-        
-        // Make sure paragraphs have proper styling
-        const paragraphs = contentElement.querySelectorAll('p');
-        paragraphs.forEach(p => {
-            p.style.marginBottom = '10px';
-            p.style.textIndent = '20px';
-        });
-        
-        contentContainer.appendChild(contentElement);
-        
-        // Add elements to article div
-        articleDiv.appendChild(headlineElement);
-        articleDiv.appendChild(bylineElement);
-        articleDiv.appendChild(contentContainer);
-        
-        // Create comments section
-        const commentsDiv = document.createElement('div');
-        commentsDiv.style.marginTop = '30px';
-        commentsDiv.style.borderTop = '2px solid #000';
-        commentsDiv.style.paddingTop = '15px';
-        
-        // Comments header
-        const commentsHeader = document.createElement('h3');
-        commentsHeader.textContent = 'Reader Comments';
-        commentsHeader.style.fontSize = '18px';
-        commentsHeader.style.marginBottom = '15px';
-        commentsHeader.style.borderBottom = '1px solid #ccc';
-        commentsHeader.style.paddingBottom = '5px';
-        
-        commentsDiv.appendChild(commentsHeader);
-        
-        // Add comments
-        const comments = document.querySelectorAll('.comment');
-        comments.forEach(comment => {
-            const commentDiv = document.createElement('div');
-            commentDiv.style.marginBottom = '15px';
-            commentDiv.style.padding = '10px';
-            commentDiv.style.backgroundColor = '#f9f9f9';
-            commentDiv.style.border = '1px solid #eee';
-            
-            // Get comment parts
-            const author = comment.querySelector('.comment-author').textContent;
-            const text = comment.querySelector('.comment-text').textContent;
-            const meta = comment.querySelector('.comment-meta').textContent;
-            
-            // Create comment elements
-            const authorEl = document.createElement('div');
-            authorEl.textContent = author;
-            authorEl.style.fontWeight = 'bold';
-            authorEl.style.marginBottom = '5px';
-            
-            const textEl = document.createElement('div');
-            textEl.textContent = text;
-            textEl.style.marginBottom = '5px';
-            textEl.style.fontSize = '14px';
-            
-            const metaEl = document.createElement('div');
-            metaEl.textContent = meta;
-            metaEl.style.fontSize = '12px';
-            metaEl.style.color = '#666';
-            metaEl.style.fontStyle = 'italic';
-            
-            commentDiv.appendChild(authorEl);
-            commentDiv.appendChild(textEl);
-            commentDiv.appendChild(metaEl);
-            
-            commentsDiv.appendChild(commentDiv);
-        });
-        
-        // Create footer
-        const footerDiv = document.createElement('div');
-        footerDiv.style.marginTop = '30px';
-        footerDiv.style.borderTop = '1px solid #000';
-        footerDiv.style.paddingTop = '10px';
-        footerDiv.style.fontSize = '12px';
-        footerDiv.style.textAlign = 'center';
-        footerDiv.style.color = '#666';
-        
-        const footerText = document.createElement('p');
-        footerText.textContent = `The ${newspaperName.textContent} • ${new Date().toLocaleDateString()} • What If News Generator`;
-        footerText.style.margin = '0';
-        
-        const disclaimerText = document.createElement('p');
-        disclaimerText.textContent = 'This is a fictional newspaper from an alternate reality. Any resemblance to real events is coincidental.';
-        disclaimerText.style.margin = '5px 0 0 0';
-        disclaimerText.style.fontSize = '10px';
-        
-        footerDiv.appendChild(footerText);
-        footerDiv.appendChild(disclaimerText);
-        
-        // Assemble the PDF container
-        pdfContainer.appendChild(headerDiv);
-        pdfContainer.appendChild(articleDiv);
-        pdfContainer.appendChild(commentsDiv);
-        pdfContainer.appendChild(footerDiv);
-        
-        // Get current style for PDF generation
-        const currentStyle = document.getElementById('style-select').value;
-        
-        // Apply theme-specific styling
-        if (currentStyle === 'monochrome') {
-            pdfContainer.style.backgroundColor = '#f8f8f8';
-            contentContainer.style.fontFamily = 'Georgia, serif';
-            nameElement.style.fontFamily = 'Times New Roman, serif';
-            nameElement.style.letterSpacing = '4px';
-        } else if (currentStyle === 'modern') {
-            pdfContainer.style.fontFamily = 'Arial, sans-serif';
-            nameElement.style.color = '#1a73e8';
-            headlineElement.style.color = '#1a73e8';
-            nameElement.style.fontFamily = 'Arial, sans-serif';
-            headlineElement.style.fontFamily = 'Arial, sans-serif';
-        } else if (currentStyle === 'futuristic') {
-            pdfContainer.style.backgroundColor = '#000';
-            pdfContainer.style.color = '#00ffcc';
-            pdfContainer.style.fontFamily = 'Courier New, monospace';
-            nameElement.style.textShadow = '0 0 10px #00ffcc';
-            headlineElement.style.textShadow = '0 0 10px #00ffcc';
-            headerDiv.style.borderBottom = '2px solid #00ffcc';
-            commentsDiv.style.borderTop = '2px solid #00ffcc';
-            footerDiv.style.borderTop = '1px solid #00ffcc';
-        }
-        
-        // Create temporary hidden div
-        const tempDiv = document.createElement('div');
-        tempDiv.style.position = 'absolute';
-        tempDiv.style.left = '-9999px';
-        tempDiv.appendChild(pdfContainer);
-        document.body.appendChild(tempDiv);
-        
-        // PDF generation options
-        const opt = {
-            margin: 0,
-            filename: `${newspaperName.textContent.replace(/\s+/g, '-')}-${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { 
-                scale: 2,
-                useCORS: true,
-                letterRendering: true,
-                scrollY: 0,
-                width: 816, // 8.5 inches * 96 DPI
-                height: 1056 // 11 inches * 96 DPI
-            },
-            jsPDF: { 
-                unit: 'in', 
-                format: 'letter', 
-                orientation: 'portrait',
-                compress: true,
-                precision: 2
-            }
-        };
-        
-        // Load html2pdf library if not already loaded
-        if (typeof html2pdf === 'undefined') {
-            const script = document.createElement('script');
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-            script.onload = () => {
-                html2pdf().set(opt).from(pdfContainer).save().then(() => {
-                    document.body.removeChild(tempDiv);
-                    UI.showError('PDF downloaded successfully!');
-                }).catch(err => {
-                    console.error('Error generating PDF:', err);
-                    UI.showError('Failed to generate PDF. Please try again.');
-                    document.body.removeChild(tempDiv);
+        try {
+            // Load html2pdf library if not already loaded
+            if (typeof html2pdf === 'undefined') {
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                }).catch(() => {
+                    throw new Error('Failed to load PDF generator. Please check your internet connection and try again.');
                 });
-            };
-            script.onerror = () => {
-                UI.showError('Failed to load PDF generator. Please check your internet connection and try again.');
-                document.body.removeChild(tempDiv);
-            };
-            document.head.appendChild(script);
-        } else {
-            html2pdf().set(opt).from(pdfContainer).save().then(() => {
-                document.body.removeChild(tempDiv);
-                UI.showError('PDF downloaded successfully!');
-            }).catch(err => {
-                console.error('Error generating PDF:', err);
-                UI.showError('Failed to generate PDF. Please try again.');
-                document.body.removeChild(tempDiv);
+            }
+            
+            // Create a container for the PDF content
+            const pdfContainer = document.createElement('div');
+            pdfContainer.id = 'pdf-container';
+            pdfContainer.style.padding = '0.5in';
+            pdfContainer.style.backgroundColor = '#FFFFFF';
+            pdfContainer.style.width = '8in'; // Letter size width (8.5in) minus margins
+            pdfContainer.style.minHeight = '10in'; // Letter size height (11in) minus margins
+            
+            // Create the newspaper header
+            const headerDiv = document.createElement('div');
+            headerDiv.style.textAlign = 'center';
+            headerDiv.style.marginBottom = '10px'; // Reduced margin
+            headerDiv.style.borderBottom = '2px solid #000';
+            headerDiv.style.paddingBottom = '5px'; // Reduced padding
+            headerDiv.style.paddingTop = '0.2in';
+            headerDiv.style.paddingLeft = '0.5in';
+            headerDiv.style.paddingRight = '0.5in';
+            
+            // Newspaper name
+            const nameElement = document.createElement('h1');
+            nameElement.textContent = newspaperName.textContent;
+            nameElement.style.fontSize = '24px'; // Smaller font
+            nameElement.style.fontWeight = 'bold';
+            nameElement.style.margin = '0 0 3px 0'; // Reduced margin
+            nameElement.style.textTransform = 'uppercase';
+            nameElement.style.fontFamily = 'Times New Roman, serif';
+            
+            // Date
+            const dateElement = document.createElement('p');
+            dateElement.textContent = newspaperDate.textContent;
+            dateElement.style.fontSize = '12px'; // Smaller font
+            dateElement.style.fontStyle = 'italic';
+            dateElement.style.margin = '0 0 3px 0'; // Reduced margin
+            
+            headerDiv.appendChild(nameElement);
+            headerDiv.appendChild(dateElement);
+            
+            // Create article section with content immediately following the header
+            const articleDiv = document.createElement('div');
+            articleDiv.style.marginTop = '0';
+            articleDiv.style.marginBottom = '15px'; // Reduced margin
+            articleDiv.style.paddingLeft = '0.4in'; // Slightly reduced padding
+            articleDiv.style.paddingRight = '0.4in'; // Slightly reduced padding
+            
+            // Article headline
+            const headlineElement = document.createElement('h2');
+            headlineElement.textContent = articleHeadline.textContent;
+            headlineElement.style.fontSize = '20px'; // Smaller font
+            headlineElement.style.fontWeight = 'bold';
+            headlineElement.style.marginTop = '5px';
+            headlineElement.style.marginBottom = '8px'; // Reduced margin
+            headlineElement.style.textTransform = 'uppercase';
+            
+            // Article byline
+            const bylineElement = document.createElement('p');
+            bylineElement.textContent = articleByline.textContent;
+            bylineElement.style.fontSize = '14px';
+            bylineElement.style.fontStyle = 'italic';
+            bylineElement.style.marginBottom = '15px';
+            bylineElement.style.borderBottom = '1px solid #ccc';
+            bylineElement.style.paddingBottom = '8px';
+            
+            // Article image (if available)
+            let imageElement = null;
+            if (!articleImageContainer.classList.contains('hidden') && articleImage.src) {
+                // Create a div to contain the image and caption
+                const imageContainerElement = document.createElement('div');
+                imageContainerElement.style.marginBottom = '10px'; // Reduced margin
+                imageContainerElement.style.textAlign = 'center';
+                imageContainerElement.style.backgroundColor = '#FFFFFF'; // Pure white background
+                
+                // Create the image element
+                imageElement = document.createElement('img');
+                imageElement.src = articleImage.src;
+                
+                // Set image styles
+                imageElement.style.maxWidth = '80%'; // Slightly smaller image
+                imageElement.style.maxHeight = '220px'; // Reduced height
+                imageElement.style.border = '1px solid #ccc';
+                imageElement.style.marginBottom = '4px'; // Reduced margin
+                imageElement.style.backgroundColor = '#FFFFFF'; // Pure white for image
+                
+                // Create the caption element
+                const captionElement = document.createElement('p');
+                captionElement.textContent = imageCaption.textContent;
+                captionElement.style.fontSize = '10px'; // Smaller caption
+                captionElement.style.fontStyle = 'italic';
+                captionElement.style.margin = '0 0 3px 0'; // Reduced margin
+                captionElement.style.backgroundColor = '#FFFFFF'; // Pure white for caption
+                
+                // Add image and caption to the container
+                imageContainerElement.appendChild(imageElement);
+                imageContainerElement.appendChild(captionElement);
+                
+                // Add the image container to the article div
+                articleDiv.appendChild(imageContainerElement);
+            }
+            
+            // Article content
+            const contentContainer = document.createElement('div');
+            contentContainer.style.columnCount = '2';
+            contentContainer.style.columnGap = '10px'; // Reduced gap for better space usage
+            contentContainer.style.textAlign = 'justify';
+            contentContainer.style.marginTop = '0';
+            contentContainer.style.marginBottom = '10px'; // Added bottom margin
+            contentContainer.style.backgroundColor = '#FFFFFF';
+            
+            // Clone the article content
+            const contentElement = document.createElement('div');
+            contentElement.innerHTML = articleContent.innerHTML;
+            contentElement.style.fontSize = '11px'; // Slightly smaller font size
+            contentElement.style.lineHeight = '1.3'; // Tighter line height
+            contentElement.style.backgroundColor = '#FFFFFF';
+            
+            contentContainer.appendChild(contentElement);
+            
+            // Add elements to article div
+            articleDiv.appendChild(headlineElement);
+            articleDiv.appendChild(bylineElement);
+            articleDiv.appendChild(contentContainer);
+            
+            // Create comments section
+            const commentsDiv = document.createElement('div');
+            commentsDiv.style.marginTop = '20px';
+            commentsDiv.style.borderTop = '2px solid #000';
+            commentsDiv.style.paddingTop = '10px';
+            commentsDiv.style.paddingLeft = '0.5in';
+            commentsDiv.style.paddingRight = '0.5in';
+            commentsDiv.style.paddingBottom = '0.5in';
+            // Remove the forced page break
+            // commentsDiv.className = 'pagebreak'; // Force page break before comments
+            
+            // Comments header
+            const commentsHeader = document.createElement('h3');
+            commentsHeader.textContent = 'Reader Comments';
+            commentsHeader.style.fontSize = '16px';
+            commentsHeader.style.marginBottom = '10px';
+            commentsHeader.style.borderBottom = '1px solid #ccc';
+            commentsHeader.style.paddingBottom = '5px';
+            
+            commentsDiv.appendChild(commentsHeader);
+            
+            // Add comments
+            const comments = document.querySelectorAll('.comment');
+            comments.forEach(comment => {
+                const commentDiv = document.createElement('div');
+                commentDiv.style.marginBottom = '5px'; // Reduced margin
+                commentDiv.style.padding = '5px'; // Reduced padding
+                commentDiv.style.backgroundColor = '#f9f9f9';
+                commentDiv.style.border = '1px solid #eee';
+                
+                // Get comment parts
+                const author = comment.querySelector('.comment-author').textContent;
+                const text = comment.querySelector('.comment-text').textContent;
+                const meta = comment.querySelector('.comment-meta').textContent;
+                
+                // Create comment elements
+                const authorEl = document.createElement('div');
+                authorEl.textContent = author;
+                authorEl.style.fontWeight = 'bold';
+                authorEl.style.marginBottom = '2px'; // Reduced margin
+                authorEl.style.fontSize = '11px'; // Smaller font
+                
+                const textEl = document.createElement('div');
+                textEl.textContent = text;
+                textEl.style.marginBottom = '2px'; // Reduced margin
+                textEl.style.fontSize = '11px'; // Smaller font
+                
+                const metaEl = document.createElement('div');
+                metaEl.textContent = meta;
+                metaEl.style.fontSize = '9px'; // Smaller font
+                metaEl.style.color = '#666';
+                metaEl.style.fontStyle = 'italic';
+                
+                commentDiv.appendChild(authorEl);
+                commentDiv.appendChild(textEl);
+                commentDiv.appendChild(metaEl);
+                
+                commentsDiv.appendChild(commentDiv);
             });
+            
+            // Create footer with vintage-appropriate text
+            const footerDiv = document.createElement('div');
+            footerDiv.style.marginTop = '30px';
+            footerDiv.style.borderTop = '1px solid #000';
+            footerDiv.style.paddingTop = '10px';
+            footerDiv.style.fontSize = '12px';
+            footerDiv.style.textAlign = 'center';
+            footerDiv.style.color = '#666';
+            footerDiv.style.paddingLeft = '0.5in';
+            footerDiv.style.paddingRight = '0.5in';
+            footerDiv.style.paddingBottom = '0.5in';
+
+            // Use vintage-appropriate publishing info
+            const vintageYear = window.vintageDate.getFullYear();
+            let publisherInfo;
+
+            if (vintageYear < 1950) {
+                publisherInfo = `${newspaperName.textContent} • Published by United Press Syndicate`;
+            } else if (vintageYear < 1970) {
+                publisherInfo = `${newspaperName.textContent} • A National News Service Publication`;
+            } else if (vintageYear < 1990) {
+                publisherInfo = `${newspaperName.textContent} • Member of the Indian Press Association`;
+            } else {
+                publisherInfo = `${newspaperName.textContent} • All Rights Reserved`;
+            }
+
+            const footerText = document.createElement('p');
+            footerText.textContent = publisherInfo;
+            footerText.style.margin = '0';
+
+            const disclaimerText = document.createElement('p');
+            disclaimerText.textContent = 'This newspaper is preserved for historical and educational purposes.';
+            disclaimerText.style.margin = '5px 0 0 0';
+            disclaimerText.style.fontSize = '10px';
+
+            footerDiv.appendChild(footerText);
+            footerDiv.appendChild(disclaimerText);
+            
+            // Assemble the PDF container
+            pdfContainer.appendChild(headerDiv);
+            pdfContainer.appendChild(articleDiv);
+            pdfContainer.appendChild(commentsDiv);
+            pdfContainer.appendChild(footerDiv);
+            
+            // Get current style for PDF generation
+            const currentStyle = document.getElementById('style-select').value;
+            
+            // Apply theme-specific styling
+            if (currentStyle === 'monochrome') {
+                pdfContainer.style.backgroundColor = '#FFFFFF';
+                contentContainer.style.fontFamily = 'Georgia, serif';
+                nameElement.style.fontFamily = 'Times New Roman, serif';
+                nameElement.style.letterSpacing = '4px';
+                if (imageElement) {
+                    imageElement.style.filter = 'grayscale(100%)';
+                    imageElement.style.border = '2px solid #000';
+                    imageElement.style.backgroundColor = '#FFFFFF';
+                }
+            } else if (currentStyle === 'modern') {
+                pdfContainer.style.fontFamily = 'Arial, sans-serif';
+                pdfContainer.style.backgroundColor = '#FFFFFF';
+                nameElement.style.color = '#1a73e8';
+                headlineElement.style.color = '#1a73e8';
+                nameElement.style.fontFamily = 'Arial, sans-serif';
+                headlineElement.style.fontFamily = 'Arial, sans-serif';
+                if (imageElement) {
+                    imageElement.style.borderRadius = '4px';
+                    imageElement.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                    imageElement.style.backgroundColor = '#FFFFFF';
+                }
+            } else if (currentStyle === 'retro') {
+                pdfContainer.style.backgroundColor = '#FFFFFF';
+                if (imageElement) {
+                    imageElement.style.filter = 'sepia(70%)';
+                    imageElement.style.border = '1px solid #d3c7a7';
+                    imageElement.style.padding = '5px';
+                    imageElement.style.backgroundColor = '#FFFFFF';
+                }
+            } else if (currentStyle === 'futuristic') {
+                pdfContainer.style.backgroundColor = '#FFFFFF';
+                pdfContainer.style.color = '#000000';
+                pdfContainer.style.fontFamily = 'Arial, sans-serif';
+                nameElement.style.color = '#000000';
+                headlineElement.style.color = '#000000';
+                headerDiv.style.borderBottom = '2px solid #000000';
+                commentsDiv.style.borderTop = '2px solid #000000';
+                footerDiv.style.borderTop = '1px solid #000000';
+                if (imageElement) {
+                    imageElement.style.border = '1px solid #000000';
+                    imageElement.style.boxShadow = 'none';
+                    imageElement.style.backgroundColor = '#FFFFFF';
+                }
+            }
+            
+            // Create temporary hidden div
+            const tempDiv = document.createElement('div');
+            tempDiv.style.position = 'absolute';
+            tempDiv.style.left = '-9999px';
+            tempDiv.appendChild(pdfContainer);
+            document.body.appendChild(tempDiv);
+            
+            // Wait for images to load if any
+            if (imageElement) {
+                await new Promise((resolve) => {
+                    if (imageElement.complete && imageElement.naturalHeight !== 0) {
+                        resolve();
+                    } else {
+                        imageElement.onload = resolve;
+                        imageElement.onerror = resolve; // Proceed even if image fails
+                        
+                        // Set a timeout in case the image doesn't load
+                        setTimeout(resolve, 5000);
+                    }
+                });
+            }
+            
+            // PDF generation options with smaller margins
+            const opt = {
+                margin: [0.25, 0.25, 0.4, 0.25], // Smaller margins: Top, right, bottom, left in inches
+                filename: `${newspaperName.textContent.replace(/\s+/g, '-')}-${window.vintageDate.toLocaleDateString().replace(/\//g, '-')}.pdf`,
+                image: { 
+                    type: 'jpeg', 
+                    quality: 1.0 
+                },
+                html2canvas: { 
+                    scale: 2,
+                    useCORS: true,
+                    letterRendering: true,
+                    allowTaint: true,
+                    scrollY: 0,
+                    backgroundColor: '#FFFFFF'
+                },
+                jsPDF: { 
+                    unit: 'in', 
+                    format: 'letter', 
+                    orientation: 'portrait',
+                    compress: true,
+                    hotfixes: ["px_scaling"],
+                    precision: 16,
+                    background: '#FFFFFF'
+                },
+                pagebreak: { 
+                    mode: ['avoid'],
+                    avoid: ['img', 'blockquote', 'tr', 'h3']
+                }
+            };
+            
+            // Create worker for advanced options
+            const worker = html2pdf().from(pdfContainer).set(opt);
+            
+            // Add header and footer to each page
+            if (worker.footer) {
+                worker.footer.height = '1cm';
+                worker.footer.contents = (pageNum, numPages) => {
+                    return `<div style="text-align: center; font-size: 10px; color: #666;">Page ${pageNum} of ${numPages}</div>`;
+                };
+            }
+            
+            // Generate the PDF in an optimized way
+            await worker.toPdf().get('pdf').then((pdf) => {
+                // Add metadata
+                pdf.setProperties({
+                    title: articleHeadline.textContent,
+                    subject: `What If: ${scenarioInput.value || scenarioInput.placeholder}`,
+                    creator: 'What If News Generator',
+                    author: 'Alternate Reality News Generator'
+                });
+                
+                return pdf;
+            }).save();
+            
+            // Clean up
+            document.body.removeChild(tempDiv);
+            UI.showError('PDF downloaded successfully!');
+            
+        } catch (err) {
+            console.error('Error generating PDF:', err);
+            UI.showError('Failed to generate PDF: ' + (err.message || 'Unknown error'));
+        }
+    };
+    
+    // Function to clear history
+    const clearHistory = () => {
+        if (confirm('Are you sure you want to clear all your article history? This cannot be undone.')) {
+            localStorage.removeItem('newsHistory');
+            displayHistory(); // Refresh the history display
+            UI.showError('History cleared successfully');
         }
     };
     
     // Initialize the application
     init();
+    
+    // Add CSS styles for the dateline
+    const datelineStyles = document.createElement('style');
+    datelineStyles.textContent = `
+        .dateline {
+            font-size: 1em;
+            margin-bottom: 10px;
+            text-indent: 0;
+        }
+        
+        .dateline strong {
+            text-transform: uppercase;
+        }
+        
+        /* PDF-specific dateline styling */
+        #pdf-container .dateline {
+            font-size: 11px;
+            margin-bottom: 8px;
+            font-style: normal;
+            font-family: "Times New Roman", Times, serif;
+        }
+    `;
+    document.head.appendChild(datelineStyles);
 });
