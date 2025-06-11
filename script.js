@@ -211,9 +211,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const commentsContainer = document.getElementById('comments-container');
     
     // API Configuration
-    const GEMINI_API_KEY = 'AIzaSyDpvFPCkg9NuuO7JZ01R4ri7IvR_Q9Rlbo';
-    const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
-    const GEMINI_IMAGE_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent';
+    // API configuration - now using serverless functions
+    const API_BASE_URL = window.location.origin;
+    const GENERATE_API_URL = `${API_BASE_URL}/api/generate`;
+    const IMAGE_API_URL = `${API_BASE_URL}/api/image`;
     
     // Elements for the article image
     const articleImageContainer = document.getElementById('article-image-container');
@@ -375,12 +376,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const API = {
         generateNews: async (scenario) => {
             try {
-                // Check if API key is available
-                const apiKey = getApiKey();
-                if (!apiKey) {
-                    throw new Error('API key is required. Please enter your Gemini API key.');
-                }
-                
                 // Create the prompt for the Gemini API
                 const prompt = generatePrompt(scenario);
                 
@@ -388,22 +383,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second timeout
                 
-                // Call the Gemini API
-                const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+                // Call the serverless API
+                const response = await fetch(GENERATE_API_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        contents: [{
-                            parts: [{ text: prompt }]
-                        }],
-                        generationConfig: {
-                            temperature: 0.7,
-                            topK: 40,
-                            topP: 0.95,
-                            maxOutputTokens: 2048,
-                        }
+                        prompt: prompt
                     }),
                     signal: controller.signal
                 });
@@ -487,7 +474,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const imagePrompt = await generateImagePrompt(scenario, content, newspaperStyle);
                     
                     // Generate the image using the prompt
-                    const imageData = await generateImage(apiKey, imagePrompt);
+                    const imageData = await generateImage(imagePrompt);
                     
                     // Add image data to the content
                     content.image = imageData;
@@ -786,34 +773,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     UI.updateComments(articleData.comments);
                     UI.showNews();
                     
-                    // Get API key
-                    const apiKey = getApiKey();
-                    if (!apiKey) {
-                        throw new Error('API key is required for image generation');
-                    }
-                    
-                    // Get the current newspaper style
-                    const newspaperStyle = document.querySelector('.newspaper')?.classList[1] || 'monochrome';
-                    
-                    // Regenerate the image
-                    try {
-                        // Generate image prompt based on content and style
-                        const imagePrompt = await generateImagePrompt(entry.scenario, articleData, newspaperStyle);
-                        
-                        // Generate the image using the prompt
-                        const imageData = await generateImage(apiKey, imagePrompt);
-                        
-                        // Update the article with the new image
-                        if (imageData) {
-                            articleImage.src = `data:${imageData.mimeType};base64,${imageData.data}`;
-                            imageCaption.textContent = `Visual coverage: ${articleData.headline.split(':')[0]}`;
-                            articleImageContainer.classList.remove('hidden');
-                        }
-                    } catch (imageError) {
-                        console.error('Image regeneration failed:', imageError);
-                        // Continue without an image if generation fails
-                        articleImageContainer.classList.add('hidden');
-                    }
+                    // Historical articles display without images for better performance
+                    // Image regeneration removed to simplify deployment
                     
                     // Hide loading state
                     UI.hideLoading();
@@ -883,34 +844,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     UI.updateComments(articleData.comments);
                     UI.showNews();
                     
-                    // Get API key
-                    const apiKey = getApiKey();
-                    if (!apiKey) {
-                        throw new Error('API key is required for image generation');
-                    }
-                    
-                    // Get the current newspaper style
-                    const newspaperStyle = document.querySelector('.newspaper')?.classList[1] || 'monochrome';
-                    
-                    // Regenerate the image
-                    try {
-                        // Generate image prompt based on content and style
-                        const imagePrompt = await generateImagePrompt(entry.scenario, articleData, newspaperStyle);
-                        
-                        // Generate the image using the prompt
-                        const imageData = await generateImage(apiKey, imagePrompt);
-                        
-                        // Update the article with the new image
-                        if (imageData) {
-                            articleImage.src = `data:${imageData.mimeType};base64,${imageData.data}`;
-                            imageCaption.textContent = `Visual coverage: ${articleData.headline.split(':')[0]}`;
-                            articleImageContainer.classList.remove('hidden');
-                        }
-                    } catch (imageError) {
-                        console.error('Image regeneration failed:', imageError);
-                        // Continue without an image if generation fails
-                        articleImageContainer.classList.add('hidden');
-                    }
+                    // Historical articles display without images for better performance
+                    // Image regeneration removed to simplify deployment
                     
                     // Hide loading state
                     UI.hideLoading();
@@ -1397,11 +1332,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Generate a prompt for the image generation based on article content
     const generateImagePrompt = async (scenario, content, style) => {
-        const apiKey = getApiKey();
-        if (!apiKey) {
-            throw new Error('API key is required for image generation');
-        }
-
         // Create a cache key using scenario and headline
         const cacheKey = `${scenario}_${content.headline}_${style}`;
         
@@ -1448,22 +1378,14 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
 
         try {
-            // Call Gemini to generate the image prompt
-            const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+            // Call serverless API to generate the image prompt
+            const response = await fetch(GENERATE_API_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    contents: [{
-                        parts: [{ text: promptGenerationPrompt }]
-                    }],
-                    generationConfig: {
-                        temperature: 0.7,
-                        topK: 40,
-                        topP: 0.95,
-                        maxOutputTokens: 1024,
-                    }
+                    prompt: promptGenerationPrompt
                 })
             });
 
@@ -1508,25 +1430,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Generate image using Gemini image generation API
-    const generateImage = async (apiKey, prompt) => {
-        const response = await fetch(`${GEMINI_IMAGE_API_URL}?key=${apiKey}`, {
+    // Generate image using serverless API
+    const generateImage = async (prompt) => {
+        const response = await fetch(IMAGE_API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                contents: [{
-                    parts: [{ text: prompt }]
-                }],
-                generation_config: {
-                    temperature: 1,
-                    topP: 0.95,
-                    topK: 40,
-                    maxOutputTokens: 8192,
-                    responseModalities: ["image", "text"],
-                    responseMimeType: "text/plain"
-                }
+                prompt: prompt
             })
         });
 
@@ -1536,7 +1448,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const data = await response.json();
         
-        // Extract image data from response
+        // Extract image data from new API response format
+        if (data.imageBase64) {
+            return {
+                data: data.imageBase64,
+                mimeType: 'image/png'
+            };
+        }
+        
+        // Fallback for older API response format
         if (data.candidates && data.candidates.length > 0) {
             const candidate = data.candidates[0];
             if (candidate.content && candidate.content.parts) {
@@ -1561,30 +1481,20 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             let content;
             
-            // Try to use the API if an API key is available
-            const apiKey = getApiKey();
-            if (apiKey) {
-                try {
-                    content = await API.generateNews(scenario);
-                } catch (error) {
-                    console.error('API error:', error);
-                    UI.showError(error.message || 'Failed to generate content. Using fallback content.');
-                    content = generateMockContent(scenario);
-                }
-            } else {
-                // Use mock content if no API key is available
+            // Try to use the API
+            try {
+                content = await API.generateNews(scenario);
+            } catch (error) {
+                console.error('API error:', error);
+                UI.showError(error.message || 'Failed to generate content. Using fallback content.');
                 content = generateMockContent(scenario);
-                UI.showError('No API key provided. Using mock content. For real AI-generated content, please enter your Gemini API key in the settings.');
+                // Save to history if using mock content (API.generateNews already saves to history)
+                saveArticleToHistory(scenario, content);
             }
             
             // Update the UI with the content
             UI.updateArticle(content);
             UI.updateComments(content.comments);
-            
-            // Save to history if using mock content (API.generateNews already saves to history)
-            if (!apiKey) {
-                saveArticleToHistory(scenario, content);
-            }
             
             // Hide loading and show the news
             UI.hideLoading();
@@ -1793,15 +1703,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelector('.article').appendChild(factCheckLoading);
             
             try {
-                const apiKey = getApiKey();
-                if (!apiKey) {
-                    // Fallback if no API key
-                    const factCheck = "In our reality, things work differently. This alternate timeline diverges from our own in several key ways. Remember, this is just a fun thought experiment!";
-                    updateFactCheck(factCheck);
-                    return;
-                }
-                
-                // Generate a fact check using Gemini API
+                // Generate a fact check using serverless API
                 const factCheckPrompt = `
                 You are a reality analyst comparing our current world with an alternate reality where "${scenario}".
                 
@@ -1816,22 +1718,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
                 
-                // Call the Gemini API
-                const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+                // Call the serverless API
+                const response = await fetch(GENERATE_API_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        contents: [{
-                            parts: [{ text: factCheckPrompt }]
-                        }],
-                        generationConfig: {
-                            temperature: 0.4,
-                            topK: 40,
-                            topP: 0.95,
-                            maxOutputTokens: 500,
-                        }
+                        prompt: factCheckPrompt
                     }),
                     signal: controller.signal
                 });
@@ -1935,10 +1829,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
     
-    // Helper function to get the API key
-    const getApiKey = () => {
-        return GEMINI_API_KEY;
-    };
+    // Note: API keys are now handled server-side via environment variables
     
     // Helper function to generate the prompt for the Gemini API
     const generatePrompt = (scenario) => {
